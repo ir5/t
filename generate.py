@@ -132,6 +132,21 @@ class QuizPrompt:
         sound_path = sentence_path[:-4] + ".mp3"
         sound_obj = vlc.MediaPlayer(sound_path)
 
+        n_repeated = 0
+        for i in range(100000):
+            sound_obj.play()
+            receive = input()
+            sound_obj.stop()
+            receive = receive.rstrip().strip()
+
+            if len(receive) == 0:
+                continue
+
+            n_repeated = i
+            break
+
+
+
 
 def main():
     parser = argparse.ArgumentParser(prog="Generate data from word list")
