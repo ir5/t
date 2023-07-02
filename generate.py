@@ -4,8 +4,10 @@ from pathlib import Path
 from google.cloud import texttospeech
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import HumanMessage
+import numpy as np
+import playsound
 
-from constant import datadir
+from constant import datadir, dbfile
 
 
 class VoiceGenerator:
@@ -96,6 +98,41 @@ class ChatManager:
         return ret.content
 
 
+class QuizPrompt:
+
+    def __init__(self):
+        words = []
+        for filename in glob.glob(Path(datadir) / "*_00.txt"):
+            base = Path(filename).name
+            word = base.split("_")[0]
+            words.append(word)
+
+        self.scores = {word:-100 for word in words}  # set defaults as -100
+
+        if Path(dbfile).exists():
+            with open(dbfile, "r") as f:
+                db = json.load(f)  # dict
+                for word, score in db.item():
+                    self.scores[word] = score
+
+        n = len(words)
+        order = list(range(n))
+        ran = np.random.uniform(size=n)
+        order = sorted(order, key=lambda i: return (self.scores[word[i]], ran[i]))
+        self.words = [words[i] for i in order]
+
+    def run(self):
+        for i in self.words:
+            self.question(word)
+
+    def question(self, word):
+        cand = list(glob.glob(Path(datadir) / f"{word}_*.txt"))
+        k = len(cand)
+        sentence_path = cand[np.random.randint(0, k)]
+        sound_path = sentence_path[:-4] + ".mp3"
+        sound_obj = vlc.MediaPlayer(sound_path)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="Generate data from word list")
     parser.add_argument("--wordfile", default="wordlist.txt", help="Path to the word list file")
@@ -120,6 +157,9 @@ def main():
                 with open(Path(datadir) / f"{word}_{i:02d}.txt", "w") as f:
                     f.write(sentence)
                 voice_generator.generate(sentence, word, i)
+
+    prompt = QuizPrompt()
+    prompt.run()
 
 
 if __name__ == "__main__":
